@@ -1,10 +1,12 @@
-5. Terminal
 
-O terminal é uma interface textual que permite conversar com o sistema por comandos.
+## **6. Filesystem**
 
-Em vez de clicar em elementos visuais, descrevemos explicitamente o que queremos que o sistema faça. Por isso, exige mais clareza e mais atenção, mas em troca, oferece muito controle.
+- A estrutura em árvore no Linux;
+- Diretórios importantes, `/home`, `/etc`, `/var`, `/mnt`, `/root`;
+- A diferença entre a organização do Linux e do Windows.
 
-Terminal é a interface onde você digita
-Shell é o programa que interpreta o que você digitou
-Prompt é a parte visual que indica que a shell está esperando um comando
+## **7. Rotas Absolutas e Relativas**
 
+- Caminhos absolutos;
+- Caminhos relativos;
+- A importância desses conceitos na navegação e administração do sistema.

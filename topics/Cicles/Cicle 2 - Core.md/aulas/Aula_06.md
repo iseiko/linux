@@ -1,63 +1,75 @@
-# 20. Usuários, Grupos e Permissões
+## **27. Compilação do Kernel Linux**
 
-Linux foi projetado como um sistema multiusuário. A segurança e o isolamento entre os processos e os dados de diferentes usuários dependem de um sistema robusto de controle de acesso.
+O kernel é a única parte do sistema operacional que tem acesso direto e irrestrito ao hardware. Ele gerencia a memória, escalona os processos na CPU, controla a rede e fala com os discos rígidos. Todo o resto (shell, comandos, interface gráfica) são apenas "espaço de usuário" (user space) pedindo favores ao kernel atráves de chamadas de sistema (syscalls).
 
-## O Banco de Dados de Identidades
+Usar um kernel pré-compilado de outra distribuição (como Ubuntu) carrega consigo milhares de drivers e configurações que você não precisa, aumentando o tempo de boot, o consumo de memória e a superfície de ataque para falhas de segurança.
 
-Linux não reconhece nomes de usuários, o kernel opera exclusivamente com números inteiros chamados UID (User ID) e GID (Group ID). A tradução entre nomes amigáveis e esses números é feita por arquivos de texto no diretório `/etc`.
+O código-fonte oficial (vanilla kernel) reside em kernel.org. Linux Torvalds e milhares de desenvolvedores ao redor do mundo mantêm esse repositório com mais de 30 milhões de linhas de código.
 
-O arquivo `/etc/passwd` armazenava todas as informações do usuário, incluindo a senha criptografada (hash). Como este arquivo precisa ser legível por todos os usuários (para que comandos como `ls -l` possam trauzir UIDs em nomes), os hashes das senhas ficavam expostos a ataques de força bruta.
+Ao baixar o tarball e extraí-lo, temos uma estrutura complexa mas lógica.
 
-Hierarquia:
-1. `/etc/passwd`: Contém as informações públicas da conta. É legível por todos. Cada linha representa um usuário, com sete campos separados por dois pontos (`:`).
+- `arch/`: O Linux roda em dezenas de arquiteturas (x86, ARM, RISC-V, PowerPC). Esta pasta contém o código específico que interage com a CPU. Se você está em um PC "comum", seu foco é `arch/x86/`.
+- `drivers/`: Esta é a maior pasta. Contém o código para fazer placas de vídeo, placas de rede, controladores USB e teclados funcionarem.
+- `fs/`: Implementações de sistemas de arquivos (ext4, btrfs, fat, ntfs). O kernel precisa saber ler os dados do disco.
+- `kernel/`: O núcleo, onde agendamentos de processos (scheduler), sinais e gerenciamento de tempo são implementados.
+- `mm/`: Gerenciamento de memória (Memory Management). Como a RAM física é mapeada para memória virtual dos processos.
+- `net/`: A pilha de rede. Como os pacotes TCP/IP são montados e desmonstados.
 
-`jess:x:1001:1001:Jess Forster:/home/jess:/bin/bash`
+Não podemos rodar `make` e compilar tudo. O kernel suporta milhares de hardwares diferentes. Se você compilasse todos os drivers disponíveis, o arquivo resultante teria gigabytes de tamanho e levaria horas para carregas na RAM.
 
-jess: Nome de login
-x: Indica que a senha está no `/etc/shadow`
-1001: UID. O root é sempre 0. Usuários de sistema (daemons) costumam ter UIDs menores que 1000. Usuários comuns começam em 1000.
-1001: GID
-Jess Forster: Campo GECOS (informações adicionais, nome completo).
-/home/jess: Diretório pessoal (home)
-/bin/bash: Shell padrão executado no login. (Se for `/sbin/nologin` ou `/bin/false`, o usuário não pode fazer login interativo, comum para serviços).
+A compilação é guiadapor um arquivo oculto chamado `.config`, localizado na raiz do código-fonte. Este arquivo contém milhares de diretrizes no formato `CONFIG_NOME_DO_RECURSO=valor`.
 
-2. `/etc/shadow`: Contém os hashes das senhas e informações sobre expiração. É legível pelo `root` e pelo grupo `shadow`
+Para cada recurso, driver ou subsistema, você tem três opções:
 
-`jess:$6$xyz...hash...:19000:0:99999:7:::`
+1. `y` (Yes/Built-in): O código será compilado diretamente para dentro do arquivo executável final do kernel (`vmlinuz`). O recurso estará disponível no exato milissegundo em que o kernel for carregado na RAM pelo bootloader
 
-O segundo campo contém o hash da senha (geralmente, SHA-512)
+2. `m` (Module): O código será compilado com um arquivo separado, com extensão `.ko` (Kernel Object). Esses arquivos ficarão armazenados no seu disco rígido. O kernel só carregará esse módulo na RAM se detectar o hardware correspondente
 
-Os grupos organizam permissões coletivas.
+3. `n` (No): O código é ignorado pelo compilador.
 
-1. `/etc/group`: Lista os grupos do sistema, seus GIDs e os usuários que pertencem a eles (como grupos secundários).
-2. `/etc/shadow`: Armazena senhas de grupos (pouco usado) e administradores de grupos.
+Criar um `.config` do zero é loucura. O kernel fornece ferramentas integradas (o sistema Kconfig) para gerar e editar essa configuração de forma segura.
 
-### Gerenciamento de Contas
+- `make defconfig`: O ponto de partida. Gera uma configuração padrão razoável baseada na arquitetura do seu processador. É um kernel genérico, similar ao que distribuições comerciais usam, projetado para rodar em "quase qualquer coisa".
+- `make localmodconfig`: A ferramenta secreta dos construtores de distribuições otimizadas. Ela analisa os módulos que estão carregados neste exato momento na máquina onde você está rodando o comando. Em seguida, ela desativa (`n`) todos os drivers no `.config` que não correspondem ao hardware detectado. O resultado é um kernel talhado sob medida para a sua máquina física.
+- `make menuconfig`: A interface de edição. Usa a biblioteca `ncurses` para desenhar menus interativos no terminal. É aqui que você passa horas navegando, ativando (`y`), modularizando (`m`) ou desativando (`n`) recursos.
 
-- `useradd`: Cria um novo usuário (adiciona entradas em passwd, shadow e group. Como opção, pode criar o diretório home com base no esqueleto em `/etc/skel`).
-- `usermod`: Modifica propriedades de um usuário.
-- `userdel`: Remove um usuário.
-- `groupadd`/`groupmod`/`groupdel`: Comandos para gerenciamento de grupos.
+Com o `.config` pronto, precisamos traduzir o código C em código de máquina.
 
-## Permissões
+1. Limpeza: Se você errou em uma compilação anterior e quer garantir que nenhum arquivo objeto antigo (`.o`) interfira, executa `make mrproper`. Cuidado: isso apaga o seu `.config`. Se quiser apenas limpar os binários mantendo a configuração, use `make clean`.
+2. Compilação: O comando é `make`. No entanto, compilar o kernel é uma das tarefas mais pesadas que um PC pode fazer. Para usar todos os núcleos do seu processador e acelerar o processo, use a flag `-j` (jobs).
 
-Cada arquivos e diretório no Linux tem um UID (proprietário), um GID (grupo proprietário) e um conjunto de permissões (modo) de 9 bits.
+```bash
+# nproc retorn o número de threads da sua CPU
+make -j$(nproc)
+```
 
-O comando `ls -l` exibe essas informações:
+O sistema de build (kbuild) lerá seu `.config`, entrará em cada pasta relevante (`arch/`, `drivers/`, `fs/`), executará o compilador GCC (ou Clang) em milhares de arquivos `.c` e chamará o linker (`Id`) para juntar tudo.
 
-> to-do: add command output from linux (i'm on windows ugh)
+Se a compilação terminar sem erros, você terá gerado dois artefatos:
 
-## Permissões Únicas (Bits Avançados)
+1. A Imagem do Kernel (`arch/x86/boot/bzImage`): É o kernel em si. O "b" significa big e o "z" significa zlib/Izma (compactado). O kernel se descompacta sozinho na RAM durante o boot.
 
-Além dos 9 bits, há 3 bits especiais que alteram o comportamento do sistema. Eles são representados por um quarto dígito octal à esquerda.
+2. Os Módulos: Milhares de arquivos `.ko` que você marcou como `m` na configuração.
 
-### SetUID (SUID) / Octal 4000
+Há também, o arquivo `System.map`, que é um dicionário que mapeia os nomes das funções do kernel para endereços de memória física. É inútil para o boot, mas crucial se o kernel travar (Kernel Panic) e você precisar debugar o erro.
 
-Quando o bit SUID é ativado em um arquivo executável, o programa roda com os privilégios do proprietário do arquivo, não do usuário que executou. É crucial para comandos como `passwd` ou `sudo`. O executável `/usr/bin/passwd` pertence ao `root` e tem o bit SUID ativo. Quando o usuário executa `passwd` para mudar a sua senha, o processo roda como `root` (temporário), permitindo que ele modifique o arquivo `/etc/shadow`.
+Em um sistema Linux (como Ubuntu), você executaria `sudo make modules_install` e `sudo make install`. O primeiro copiaria os `.ko` para `/lib/modules/` e o segundo copiaria o `bzImage` para `/boot/vmlinuz`, atualizando o GRUB automaticamente.
 
-### SetGID (SGID) / Octal 2000
+Mas! Nós estamos construindo uma distribuição do zero. Não queremos instalar o kernel no sistema hospedeiro, queremos prepará-lo para o nosso novo sistema.
 
-### Sticky Bit
+O que faremos é copiar manualmente esses artefatos para um diretório de trabalho (um "staging area" ou "sysroot") que se tornará a raiz (`/`) da nossa nova distribuição.
 
-Aplicado, no geral, em diretórios. Quando ativado, apenas o proprietário do arquivo (ou o root) pode deletar ou renomear arquivos dentro do diretório, mesmo que o diretório tenha permissões de escrita (`w`) para todos (`777`).
-Um exemplo é `/tmp`. Ele tem permissões `drwxrwxrwt` (1777). Qualquer usuário pode criar arquivos no `/tmp` mas o usuário `jess` não pode apagar os arquivos temporários criados pelo `caramez`.
+```bash
+# fluxo de trabalho para distro-builders
+export DISTRO_ROOT="/mnt/new_distro"
+mkdir -p $DISTRO_ROOT/boot
+
+# copia a imagem do kernel
+cp arch /x86/boot/bzImage
+<LaTex>$DISTRO_ROOT/boot/vmlinuz-custom
+
+# instala os módulos, apontando para a raiz da nova distribuição
+make INSTALL_MOD_PATH=$</
+LaTex>DISTRO_ROOT modules_install
+```
+

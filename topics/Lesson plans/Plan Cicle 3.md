@@ -1,6 +1,6 @@
 # Ciclo III - Advanced
 
-27. Compilação do Kernel Linux
+<h3 align='center'>27. Compilação do Kernel Linux</h3>
 - Código-fonte;
 - Configuração do Kernel;
 - Selecionando drivers e módulos essenciais;
@@ -10,7 +10,7 @@
 - Debugging de problemas de compilação;
 - Otimização.
 
-28. Criação de um Sistema de Arquivos Raiz
+<h3 align='center'>28. Criação de um Sistema de Arquivos Raiz</h3>
 - Diretórios e binários essenciais;
 - Dependências;
 - Bibliotecas compartilhadas necessárias;
@@ -20,7 +20,7 @@
 - `chroot`;
 - `tar`, `cpio`.
 
-29. Bootloader e Inicialização Customizada
+<h3 align='center'>29. Bootloader e Inicialização Customizada</h3>
 - GRUB;
 - Entradas de boot customizadas;
 - Parâmetros de kernel;
@@ -30,7 +30,7 @@
 - Troubleshooting de boot;
 - U-Boot.
 
-30. Integração de Ferramentas Essenciais
+<h3 align='center'>30. Integração de Ferramentas Essenciais</h3>
 - Compilando ferramentas: `busybox`;
 - Compilando shells alternativos: `dash`, `zsh`;
 - Compilando editores: `nano`, `vim`;
@@ -41,7 +41,7 @@
 - Otimização;
 - Criando symlinks para compatibilidade.
 
-31. Configuração de Rede e Serviços Básicos
+<h3 align='center'>31. Configuração de Rede e Serviços Básicos</h3>
 - Configuração de rede: interfaces, IP, DNS, gateway;
 - Arquivos de configuração;
 - Ferramentas de rede;
@@ -52,7 +52,7 @@
 - Sincronização de tempo;
 - DNS local.
 
-32. Gerenciamento de Pacotes Customizado
+<h3 align='center'>32. Gerenciamento de Pacotes Customizado</h3>
 - Escolhendo um gerenciador;
 - Como organizar pacotes;
 - Criando pacotes;
@@ -63,7 +63,7 @@
 - Versionamento e dependências;
 - Atualizações.
 
-33. Otimização, Segurança e Finalização
+<h3 align='center'>33. Otimização, Segurança e Finalização</h3>
 - Auditoria de segurança;
 - Hardening;
 - Otimização de performance;
@@ -74,7 +74,7 @@
 - Imagens;
 - Versionamento.
 
-34. Distribuição e Deployment
+<h3 align='center'>34. Distribuição e Deployment</h3>
 - Hospedando a distribuição;
 - Criando checksums e assinaturas;
 - Documentação;
